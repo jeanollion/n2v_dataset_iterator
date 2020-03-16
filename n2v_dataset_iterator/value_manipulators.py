@@ -65,3 +65,16 @@ def sample_coords(shape, coord, sigma=4):
 
 def normal_int(mean, sigma, w):
     return int(np.clip(np.round(np.random.normal(mean, sigma)), 0, w - 1))
+
+def get_subpatch(patch, coord, local_sub_patch_radius):
+    start = np.maximum(0, np.array(coord) - local_sub_patch_radius)
+    end = start + local_sub_patch_radius*2 + 1
+
+    shift = np.minimum(0, patch.shape - end)
+
+    start += shift
+    end += shift
+
+    slices = [ slice(s, e) for s, e in zip(start, end)]
+
+    return patch[tuple(slices)]

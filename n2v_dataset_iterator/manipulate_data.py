@@ -1,83 +1,97 @@
-import numpy as np
-
 # CODE ADAPTED FROM NOISE TO VOID: https://github.com/juglab/n2v/blob/master/n2v/utils/n2v_utils.py
+import numpy as np
+from .value_manipulators import pm_uniform_withCP
 
-def manipulate_data_fun(perc_pix=0.198, shape=(64, 64), value_manipulation=pm_uniform_withCP(5)):
+def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5)):
     def fun(batch):
-        Y = np.zeros(batch.shape[:-1]+(batch.shape[-1]*2), dtype=batch.dtype)
-        return manipulate_data(X, Y, perc_pix, shape, value_manipulation)
+        shape_ = shape
+        if shape_ is None or not patch:
+            shape_ = batch.shape[1:-1]
+        if patch:
+            X_out = np.zeros( (batch.shape[0], *shape_, batch.shape[-1]), dtype=batch.dtype)
+        else:
+            X_out = None
+        Y_out = np.zeros( (batch.shape[0], *shape_, batch.shape[-1]*2), dtype=batch.dtype)
+        manipulate_data(batch, X_out, Y_out, shape_, perc_pix, value_manipulation)
+        if patch:
+            return X_out, Y_out
+        else:
+            return Y_out
     return fun
 
-def manipulate_data(X, Y, perc_pix=0.198, shape=(64, 64), value_manipulation=pm_uniform_withCP(5)):
+def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5)):
     dims = len(shape)
+    sampling_range = np.array(X.shape[1:-1]) - np.array(shape)
     if dims == 2:
+        patch_sampler = subpatch_sampling2D
         box_size = np.round(np.sqrt(100/perc_pix)).astype(np.int)
-        get_stratified_coords = get_stratified_coords2D
+        get_stratified_coords = get_stratified_coords2D_2
         rand_float = rand_float_coords2D(box_size)
     elif dims == 3:
+        patch_sampler = subpatch_sampling3D
         box_size = np.round(np.sqrt(100/perc_pix)).astype(np.int)
         get_stratified_coords = get_stratified_coords3D
         rand_float = rand_float_coords3D(box_size)
 
     n_chan = X.shape[-1]
-
-    Y *= 0
+    offset_y, offset_x = get_offset(box_size, shape)
+    Y_out *= 0
+    if X_out is not None:
+        patch_sampler(X, X_out, sampling_range, shape)
+    else:
+        X_out = X
     for j in range(X.shape[0]):
-        coords = get_stratified_coords(rand_float, box_size=box_size, shape=np.array(X.shape)[1:-1])
+        #coords = get_stratified_coords(rand_float, box_size=box_size, shape=np.array(X.shape)[1:-1])
+        coords = get_stratified_coords(box_size, offset_y, offset_x, shape)
         for c in range(n_chan):
             indexing = (j,) + coords + (c,)
             indexing_mask = (j,) + coords + (c + n_chan,)
-            y = X[indexing]
-            x = value_manipulation(X[j, ..., c], coords, dims)
-            Y[indexing] = y
-            Y[indexing_mask] = 1. / coords.shape[0] # modification from original code so that only loss = mask * loss
-            X[indexing] = x
+            y = X_out[indexing]
+            x = value_manipulation(X_out[j, ..., c], coords, dims)
+            Y_out[indexing] = y
+            Y_out[indexing_mask] = 1. / len(coords[0]) # modification from original code so that only loss = mask * loss
+            X_out[indexing] = x
 
-def get_subpatch(patch, coord, local_sub_patch_radius):
-    start = np.maximum(0, np.array(coord) - local_sub_patch_radius)
-    end = start + local_sub_patch_radius*2 + 1
+def subpatch_sampling2D(X, X_Batches, sampling_range, shape):
+    if sampling_range[0]==0 and sampling_range[1]==0:
+        for i in range(X.shape[0]):
+            X_Batches[i] = np.copy(X[i])
+    else:
+        y_start = np.random.randint(0, sampling_range[0] + 1, size=X.shape[0])
+        x_start = np.random.randint(0, sampling_range[1] + 1, size=X.shape[0])
+        for i in range(X.shape[0]):
+            X_Batches[i] = np.copy(X[i, y_start[i]:y_start[i] + shape[0], x_start[i]:x_start[i] + shape[1]])
 
-    shift = np.minimum(0, patch.shape - end)
+def subpatch_sampling3D(X, X_Batches, sampling_range, shape):
+    if sampling_range[0]==0 and sampling_range[1]==0 and sampling_range[2]==0:
+        for i in range(X.shape[0]):
+            X_Batches[i] = np.copy(X[i])
+    else:
+        z_start = np.random.randint(0, sampling_range[0] + 1, size=X.shape[0])
+        y_start = np.random.randint(0, sampling_range[1] + 1, size=X.shape[0])
+        x_start = np.random.randint(0, sampling_range[2] + 1, size=X.shape[0])
+        for i in range(X.shape[0]):
+            X_Batches[i] = np.copy(X[i, z_start[i]:z_start[i] + shape[0], y_start[i]:y_start[i] + shape[1], x_start[i]:x_start[i] + shape[2]])
 
-    start += shift
-    end += shift
-
-    slices = [ slice(s, e) for s, e in zip(start, end)]
-
-    return patch[tuple(slices)]
-
-def subpatch_sampling2D(X, X_Batches, indices, range, shape):
-    for j in indices:
-        y_start = np.random.randint(0, range[0] + 1)
-        x_start = np.random.randint(0, range[1] + 1)
-        X_Batches[j] = np.copy(X[j, y_start:y_start + shape[0], x_start:x_start + shape[1]])
-
-def subpatch_sampling3D(X, X_Batches, indices, range, shape):
-    for j in indices:
-        z_start = np.random.randint(0, range[0] + 1)
-        y_start = np.random.randint(0, range[1] + 1)
-        x_start = np.random.randint(0, range[2] + 1)
-        X_Batches[j] = np.copy(X[j, z_start:z_start + shape[0], y_start:y_start + shape[1], x_start:x_start + shape[2]])
-
-def get_offset(shape, boxsize): # TODO TEST
+def get_offset(box_size, shape): # TODO TEST
     box_count_y = int(np.ceil(shape[0] / box_size))
     box_count_x = int(np.ceil(shape[1] / box_size))
     offset_y = np.zeros(shape = (box_count_y, box_count_x), dtype=np.int)
     offset_x = np.zeros(shape = (box_count_y, box_count_x), dtype=np.int)
 
     for y in range(1, box_count_y):
-        offset_y[y, :] = y * boxsize
+        offset_y[y, :] = y * box_size
     for x in range(1, box_count_x):
-        offset_x[:, x] = x * boxsize
+        offset_x[:, x] = x * box_size
     return offset_y.flatten(), offset_x.flatten()
 
-def get_stratified_coords2D_2(boxsize, offset_y, offset_x, shape): # TODO TEST
-    x = np.random.uniform(size=offset_y.shape[0]) * boxsize
-    y = np.random.uniform(size=offset_y.shape[0]) * boxsize
+def get_stratified_coords2D_2(box_size, offset_y, offset_x, shape): # TODO TEST
+    x = np.random.uniform(size=offset_y.shape[0]) * box_size
+    y = np.random.uniform(size=offset_y.shape[0]) * box_size
     x = x.astype(np.int) + offset_x
     y = y.astype(np.int) + offset_y
     # remove coords outside image
-    mask = (y<shape[0]) & x<shape[1])
+    mask = (y<shape[0]) & (x<shape[1])
     return (y[mask], x[mask])
 
 def get_stratified_coords2D(coord_gen, box_size, shape):
