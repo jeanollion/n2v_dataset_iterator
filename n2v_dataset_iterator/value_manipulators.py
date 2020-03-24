@@ -1,6 +1,11 @@
 import numpy as np
 
-# CODE FROM NOISE TO VOID: https://github.com/juglab/n2v/blob/master/n2v/utils/n2v_utils.py
+# MOST CODE FROM NOISE TO VOID: https://github.com/juglab/n2v/blob/master/n2v/utils/n2v_utils.py
+
+def pm_null():
+    def null(patch, coords, dims):
+        return [0] * len(coords[0])
+    return null
 
 def pm_normal_withoutCP(local_sub_patch_radius):
     def normal_withoutCP(patch, coords, dims):
