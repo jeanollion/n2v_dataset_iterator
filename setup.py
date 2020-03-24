@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.1",
     author="Jean Ollion",
     author_email="jean.ollion@polytechnique.org",
-    description="noise2void utils for compatibility with dataset_iterator and tf.keras"
+    description="noise2void utils for compatibility with dataset_iterator and tf.keras",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/jeanollion/n2v_dataset_iterator.git",
