@@ -2,7 +2,7 @@
 import numpy as np
 from .value_manipulators import pm_uniform_withCP
 
-def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5)):
+def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5), full_output=False):
     def fun(batch):
         shape_ = shape
         if shape_ is None or not patch:
@@ -12,7 +12,7 @@ def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipu
         else:
             X_out = None
         Y_out = np.zeros( (batch.shape[0], *shape_, batch.shape[-1]*2), dtype=batch.dtype)
-        manipulate_data(batch, X_out, Y_out, shape_, perc_pix, value_manipulation)
+        manipulate_data(batch, X_out, Y_out, shape_, perc_pix, value_manipulation, full_output)
         if patch:
             return X_out, Y_out
         else:
