@@ -50,8 +50,7 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
             indexing = (j,) + coords + (c,)
             indexing_mask = (j,) + coords + (c + n_chan,)
             if not full_output:
-                Y_out[indexing] = y
-                y = X_out[indexing]
+                Y_out[indexing] = X_out[indexing]
             x = value_manipulation(X_out[j, ..., c], coords, dims)
             Y_out[indexing_mask] = 1. / len(coords[0]) # modification from original code so that only loss = mask * loss
             X_out[indexing] = x
