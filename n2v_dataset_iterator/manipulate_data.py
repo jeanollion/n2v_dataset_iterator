@@ -19,7 +19,7 @@ def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipu
             return Y_out
     return fun
 
-def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5)):
+def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5), full_output=False):
     dims = len(shape)
     sampling_range = np.array(X.shape[1:-1]) - np.array(shape)
     if dims == 2:
@@ -35,20 +35,24 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
 
     n_chan = X.shape[-1]
     offset_y, offset_x = get_offset(box_size, shape)
-    Y_out *= 0
     if X_out is not None:
         patch_sampler(X, X_out, sampling_range, shape)
     else:
         X_out = X
+    if not full_output:
+        Y_out *= 0
+    else:
+        np.copyto(Y_out, X_out)
     for j in range(X.shape[0]):
         #coords = get_stratified_coords(rand_float, box_size=box_size, shape=np.array(X.shape)[1:-1])
         coords = get_stratified_coords(box_size, offset_y, offset_x, shape)
         for c in range(n_chan):
             indexing = (j,) + coords + (c,)
             indexing_mask = (j,) + coords + (c + n_chan,)
-            y = X_out[indexing]
+            if not full_output:
+                Y_out[indexing] = y
+                y = X_out[indexing]
             x = value_manipulation(X_out[j, ..., c], coords, dims)
-            Y_out[indexing] = y
             Y_out[indexing_mask] = 1. / len(coords[0]) # modification from original code so that only loss = mask * loss
             X_out[indexing] = x
 
