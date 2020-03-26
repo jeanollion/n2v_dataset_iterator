@@ -43,6 +43,7 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
     #    Y_out *= 0
     if full_output:
         np.copyto(Y_out[...,0:n_chan], X_out)
+    n_pix = float(np.prod(X.shape[1:-1]))
     for j in range(X.shape[0]):
         #coords = get_stratified_coords(rand_float, box_size=box_size, shape=np.array(X.shape)[1:-1])
         coords = get_stratified_coords(box_size, offset_y, offset_x, shape)
@@ -52,7 +53,7 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
             if not full_output:
                 Y_out[indexing] = X_out[indexing]
             x = value_manipulation(X_out[j, ..., c], coords, dims)
-            Y_out[indexing_mask] = 1. / len(coords[0]) # modification from original code so that only loss = mask * loss
+            Y_out[indexing_mask] = n_pix / len(coords[0]) # modification from original code so that only loss = mask * loss
             X_out[indexing] = x
 
 def subpatch_sampling2D(X, X_Batches, sampling_range, shape):
