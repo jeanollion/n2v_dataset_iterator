@@ -53,7 +53,7 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
             if not full_output:
                 Y_out[indexing] = X_out[indexing]
             x = value_manipulation(X_out[j, ..., c], coords, dims)
-            Y_out[indexing_mask] = n_pix / len(coords[0]) # modification from original code so that only loss = mask * loss
+            Y_out[indexing_mask] = n_pix / len(coords[0]) # modification from original code so that only loss = mask * MAE/MSE-loss
             X_out[indexing] = x
 
 def subpatch_sampling2D(X, X_Batches, sampling_range, shape):
