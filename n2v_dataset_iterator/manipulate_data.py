@@ -2,7 +2,7 @@
 import numpy as np
 from .value_manipulators import pm_uniform_withCP
 
-def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5), full_output=False):
+def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5), weighted_loss = True, full_output=False):
     def fun(batch):
         shape_ = shape
         if shape_ is None or not patch:
@@ -12,14 +12,14 @@ def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=0.198, value_manipu
         else:
             X_out = None
         Y_out = np.zeros( (batch.shape[0], *shape_, batch.shape[-1]*2), dtype=batch.dtype)
-        manipulate_data(batch, X_out, Y_out, shape_, perc_pix, value_manipulation, full_output)
+        manipulate_data(batch, X_out, Y_out, shape_, perc_pix, value_manipulation, weighted_loss, full_output)
         if patch:
             return X_out, Y_out
         else:
             return Y_out
     return fun
 
-def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5), full_output=False):
+def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manipulation=pm_uniform_withCP(5),  weighted_loss = True,full_output=False):
     dims = len(shape)
     sampling_range = np.array(X.shape[1:-1]) - np.array(shape)
     if dims == 2:
@@ -53,7 +53,10 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.198, value_manip
             if not full_output:
                 Y_out[indexing] = X_out[indexing]
             x = value_manipulation(X_out[j, ..., c], coords, dims)
-            Y_out[indexing_mask] = n_pix / len(coords[0]) # modification from original code so that only loss = mask * MAE/MSE-loss
+            if weighted_loss:
+                Y_out[indexing_mask] = n_pix / len(coords[0]) # modification from original code so that only loss = mask * MAE/MSE-loss
+            else:
+                Y_out[indexing_mask] = 1
             X_out[indexing] = x
 
 def subpatch_sampling2D(X, X_Batches, sampling_range, shape):
