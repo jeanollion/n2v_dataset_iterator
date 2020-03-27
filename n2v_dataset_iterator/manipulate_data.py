@@ -35,7 +35,6 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.293, value_manip
         raise ValueError("dimension number not supported")
     n_chan = X.shape[-1]
     offsets = get_offset(box_size, shape)
-    print("box size: {}, num pix: {}".format(box_size, offsets[0].shape))
     if X_out is not None:
         patch_sampler(X, X_out, sampling_range, shape)
     else:
@@ -47,7 +46,6 @@ def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=0.293, value_manip
     n_pix = float(np.prod(X.shape[1:-1]))
     for j in range(X.shape[0]):
         coords = get_stratified_coords(box_size, offsets, shape)
-        print(coords)
         for c in range(n_chan):
             indexing = (j,) + coords + (c,)
             indexing_mask = (j,) + coords + (c + n_chan,)
