@@ -5,7 +5,7 @@ import numpy as np
 def pm_cst(value = 0):
     def cst_fun(patch, coords, dims):
         return [value] * len(coords[0])
-    return null_fun
+    return cst_fun
 
 def pm_min():
     def min_fun(patch, coords, dims):
