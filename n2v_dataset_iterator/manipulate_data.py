@@ -19,7 +19,7 @@ def manipulate_data_fun(patch=True, shape=(32, 32), perc_pix=3.125, value_manipu
             return Y_out
     return fun
 
-def manipulate_data(X, X_out, Y_out, shape=(32, 64), perc_pix=3.125, value_manipulation=pm_uniform_withCP(5),  weighted_loss = True,full_output=False):
+def manipulate_data(X, X_out, Y_out, shape, perc_pix=3.125, value_manipulation=pm_uniform_withCP(5),  weighted_loss = True,full_output=False):
     dims = len(shape)
     sampling_range = np.array(X.shape[1:-1]) - np.array(shape)
     num_pix = np.product(shape)/100.0 * perc_pix
@@ -86,19 +86,19 @@ def get_offset(box_size, shape):
 def get_stratified_coords2D(box_size, offset_yx, shape):
     x = np.random.uniform(size=offset_yx[0].shape[0]) * box_size
     y = np.random.uniform(size=offset_yx[0].shape[0]) * box_size
-    y = x.astype(np.int) + offset_yx[0]
-    x = y.astype(np.int) + offset_yx[1]
+    y = y.astype(np.int) + offset_yx[0]
+    x = x.astype(np.int) + offset_yx[1]
     # remove coords outside image
-    mask = (y<shape[0]) & (x<shape[1])
+    mask = np.logical_and(y<shape[0], x<shape[1])
     return (y[mask], x[mask])
 
 def get_stratified_coords3D(box_size, offset_zyx, shape): # TODO test
     x = np.random.uniform(size=offset_zyx[0].shape[0]) * box_size
     y = np.random.uniform(size=offset_zyx[0].shape[0]) * box_size
     z = np.random.uniform(size=offset_zyx[0].shape[0]) * box_size
-    z = x.astype(np.int) + offset_zyx[0]
-    y = x.astype(np.int) + offset_zyx[1]
-    x = y.astype(np.int) + offset_zyx[2]
+    z = z.astype(np.int) + offset_zyx[0]
+    y = y.astype(np.int) + offset_zyx[1]
+    x = x.astype(np.int) + offset_zyx[2]
     # remove coords outside image
     mask = (z<shape[0]) & (y<shape[1]) & (x<shape[2])
     return (z[mask], y[mask], x[mask])
